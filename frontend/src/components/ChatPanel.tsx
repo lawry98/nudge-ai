@@ -7,6 +7,7 @@ import QuickReplyButton from './QuickReplyButton'
 
 interface ChatPanelProps {
   selectedTask: Task | null
+  onBack?: () => void
 }
 
 const QUICK_REPLIES = [
@@ -16,7 +17,7 @@ const QUICK_REPLIES = [
   "I'm not in the mood",
 ]
 
-export default function ChatPanel({ selectedTask }: ChatPanelProps) {
+export default function ChatPanel({ selectedTask, onBack }: ChatPanelProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
@@ -115,10 +116,19 @@ export default function ChatPanel({ selectedTask }: ChatPanelProps) {
     messages.length > 0 && messages[messages.length - 1].role === 'assistant' && !loading
 
   return (
-    <div className="w-[350px] min-w-[350px] bg-white flex flex-col h-full border-l border-gray-100">
+    <div className="flex flex-col h-full overflow-hidden">
       {/* Header */}
       <div className="px-5 py-4 border-b border-gray-100">
         <div className="flex items-center gap-2">
+          {onBack && (
+            <button
+              onClick={onBack}
+              className="lg:hidden -ml-1 mr-1 p-1 text-gray-400 hover:text-gray-700 transition-colors text-lg leading-none"
+              aria-label="Back"
+            >
+              ←
+            </button>
+          )}
           <span className="font-bold text-gray-800">NudgeAI</span>
           <span className="w-2 h-2 bg-green-400 rounded-full" />
         </div>

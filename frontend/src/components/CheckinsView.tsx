@@ -42,7 +42,7 @@ export default function CheckinsView() {
 
   return (
     <div className="flex-1 bg-[#F0F2F5] overflow-y-auto">
-      <div className="max-w-2xl mx-auto px-6 py-8">
+      <div className="max-w-2xl lg:max-w-5xl mx-auto px-6 py-8">
         <h1 className="text-2xl font-bold text-gray-800 mb-2">AI Check-ins</h1>
         <p className="text-sm text-gray-400 mb-6">All conversations with NudgeAI</p>
 

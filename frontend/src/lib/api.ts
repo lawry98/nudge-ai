@@ -1,4 +1,4 @@
-import { Task, ChatMessage, Stats } from '@/types'
+import { Task, ChatMessage, Stats, Settings, FocusRecommendation } from '@/types'
 
 const BASE_URL = 'http://localhost:8000'
 
@@ -20,7 +20,7 @@ export const api = {
     return request('/api/tasks/')
   },
 
-  createTask(data: Omit<Task, 'id' | 'created_at' | 'completed'>): Promise<Task> {
+  createTask(data: Omit<Task, 'id' | 'created_at' | 'completed' | 'completed_at'>): Promise<Task> {
     return request('/api/tasks/', {
       method: 'POST',
       body: JSON.stringify(data),
@@ -58,5 +58,20 @@ export const api = {
 
   getStats(): Promise<Stats> {
     return request('/api/stats/')
+  },
+
+  getSettings(): Promise<Settings> {
+    return request('/api/settings/')
+  },
+
+  updateSettings(data: Partial<Omit<Settings, 'updated_at'>>): Promise<Settings> {
+    return request('/api/settings/', {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    })
+  },
+
+  getFocusRecommendation(): Promise<FocusRecommendation> {
+    return request('/api/focus-recommendation/')
   },
 }

@@ -32,12 +32,12 @@ export default function ProgressView() {
 
   return (
     <div className="flex-1 bg-[#F0F2F5] overflow-y-auto">
-      <div className="max-w-2xl mx-auto px-6 py-8">
+      <div className="max-w-2xl lg:max-w-5xl mx-auto px-6 py-8">
         <h1 className="text-2xl font-bold text-gray-800 mb-6">Progress</h1>
 
         {/* Summary cards */}
         <div className="grid grid-cols-2 gap-4 mb-8">
-          <StatCard label="Completed" value={completed.length} sub="all time" />
+          <StatCard label="Completed" value={stats?.completed_all_time ?? completed.length} sub="all time" />
           <StatCard label="Pending" value={pending.length} sub="tasks remaining" />
           <StatCard label="Overdue" value={overdue.length} sub="need attention" />
           <StatCard label="Streak" value={stats ? `${stats.streak} days 🔥` : '—'} sub="consecutive days" />
@@ -49,27 +49,27 @@ export default function ProgressView() {
           <div className="flex gap-8">
             <div>
               <p className="text-2xl font-bold text-[#7C6EF0]">
-                {stats ? `${stats.completed} / ${stats.total}` : '—'}
+                {stats ? `${stats.completed_this_week} / ${stats.total_this_week}` : '—'}
               </p>
-              <p className="text-xs text-gray-400 mt-1">Tasks completed</p>
+              <p className="text-xs text-gray-400 mt-1">Tasks completed (created this week)</p>
             </div>
             <div>
-              <p className="text-2xl font-bold text-[#7C6EF0]">{stats?.checkins ?? '—'}</p>
+              <p className="text-2xl font-bold text-[#7C6EF0]">{stats?.checkins_this_week ?? '—'}</p>
               <p className="text-xs text-gray-400 mt-1">AI check-ins</p>
             </div>
           </div>
 
           {/* Completion bar */}
-          {stats && stats.total > 0 && (
+          {stats && stats.total_this_week > 0 && (
             <div className="mt-4">
               <div className="flex justify-between text-xs text-gray-400 mb-1">
                 <span>Completion rate</span>
-                <span>{Math.round((stats.completed / stats.total) * 100)}%</span>
+                <span>{Math.round((stats.completed_this_week / stats.total_this_week) * 100)}%</span>
               </div>
               <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
                 <div
                   className="h-full bg-[#7C6EF0] rounded-full transition-all"
-                  style={{ width: `${(stats.completed / stats.total) * 100}%` }}
+                  style={{ width: `${(stats.completed_this_week / stats.total_this_week) * 100}%` }}
                 />
               </div>
             </div>

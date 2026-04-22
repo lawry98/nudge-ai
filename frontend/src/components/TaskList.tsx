@@ -46,15 +46,29 @@ function groupTasks(tasks: Task[]): TaskGroup[] {
 }
 
 export default function TaskList({ tasks, selectedTask, onSelectTask, onTasksChange }: TaskListProps) {
-  const [showModal, setShowModal] = useState(false)
+  const [showAddModal, setShowAddModal] = useState(false)
+  const [editingTask, setEditingTask] = useState<Task | null>(null)
 
   const handleAdd = (task: Task) => {
     onTasksChange([...tasks, task])
-    setShowModal(false)
+    setShowAddModal(false)
   }
 
   const handleUpdate = (updated: Task) => {
     onTasksChange(tasks.map((t) => (t.id === updated.id ? updated : t)))
+  }
+
+  const handleEdit = (task: Task) => {
+    setEditingTask(task)
+  }
+
+  const handleEditSave = (updated: Task) => {
+    onTasksChange(tasks.map((t) => (t.id === updated.id ? updated : t)))
+    setEditingTask(null)
+  }
+
+  const handleDelete = (id: number) => {
+    onTasksChange(tasks.filter((t) => t.id !== id))
   }
 
   const groups = groupTasks(tasks)
@@ -65,7 +79,7 @@ export default function TaskList({ tasks, selectedTask, onSelectTask, onTasksCha
       <div className="flex items-center justify-between px-6 py-5 bg-[#F0F2F5] border-b border-gray-200">
         <h1 className="text-xl font-bold text-gray-800">My Tasks</h1>
         <button
-          onClick={() => setShowModal(true)}
+          onClick={() => setShowAddModal(true)}
           className="bg-[#7C6EF0] text-white text-sm font-semibold px-4 py-2 rounded-xl hover:bg-[#6358D4] transition-colors"
         >
           + Add Task
@@ -98,6 +112,8 @@ export default function TaskList({ tasks, selectedTask, onSelectTask, onTasksCha
                     isSelected={selectedTask?.id === task.id}
                     onSelect={onSelectTask}
                     onUpdate={handleUpdate}
+                    onEdit={handleEdit}
+                    onDelete={handleDelete}
                   />
                 ))}
               </div>
@@ -106,7 +122,18 @@ export default function TaskList({ tasks, selectedTask, onSelectTask, onTasksCha
         )}
       </div>
 
-      {showModal && <AddTaskModal onClose={() => setShowModal(false)} onAdd={handleAdd} />}
+      {showAddModal && (
+        <AddTaskModal onClose={() => setShowAddModal(false)} onAdd={handleAdd} />
+      )}
+
+      {editingTask && (
+        <AddTaskModal
+          onClose={() => setEditingTask(null)}
+          onAdd={() => {}}
+          editTask={editingTask}
+          onEdit={handleEditSave}
+        />
+      )}
     </div>
   )
 }

@@ -26,7 +26,7 @@ export default function Sidebar({ activeNav, onNavChange }: SidebarProps) {
   }, [])
 
   return (
-    <aside className="flex flex-col w-[250px] min-w-[250px] bg-[#1A1A2E] text-white h-full">
+    <aside className="hidden md:flex flex-col w-[250px] min-w-[250px] bg-[#1A1A2E] text-white h-full">
       {/* Logo */}
       <div className="px-6 py-7 border-b border-white/10">
         <div className="text-2xl font-bold tracking-tight">
@@ -61,12 +61,12 @@ export default function Sidebar({ activeNav, onNavChange }: SidebarProps) {
             <div className="flex justify-between items-center">
               <span className="text-gray-300">Tasks completed</span>
               <span className="font-bold text-[#7C6EF0]">
-                {stats ? `${stats.completed} / ${stats.total}` : '—'}
+                {stats ? `${stats.completed_this_week} / ${stats.total_this_week}` : '—'}
               </span>
             </div>
             <div className="flex justify-between items-center">
               <span className="text-gray-300">AI check-ins</span>
-              <span className="font-bold text-[#7C6EF0]">{stats?.checkins ?? '—'}</span>
+              <span className="font-bold text-[#7C6EF0]">{stats?.checkins_this_week ?? '—'}</span>
             </div>
             <div className="flex justify-between items-center">
               <span className="text-gray-300">Streak</span>

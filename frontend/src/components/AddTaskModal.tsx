@@ -7,15 +7,20 @@ import { api } from '@/lib/api'
 interface AddTaskModalProps {
   onClose: () => void
   onAdd: (task: Task) => void
+  editTask?: Task
+  onEdit?: (task: Task) => void
 }
 
 const estimatedTimeOptions = ['15 min', '30 min', '1 hour', '2 hours', '3+ hours']
 
-export default function AddTaskModal({ onClose, onAdd }: AddTaskModalProps) {
-  const [name, setName] = useState('')
-  const [dueDate, setDueDate] = useState('')
-  const [estimatedTime, setEstimatedTime] = useState('30 min')
-  const [priority, setPriority] = useState<Task['priority']>('medium')
+export default function AddTaskModal({ onClose, onAdd, editTask, onEdit }: AddTaskModalProps) {
+  const isEdit = !!editTask
+
+  const [name, setName] = useState(editTask?.name ?? '')
+  const [dueDate, setDueDate] = useState(editTask?.due_date ?? '')
+  const [estimatedTime, setEstimatedTime] = useState(editTask?.estimated_time ?? '30 min')
+  const [priority, setPriority] = useState<Task['priority']>(editTask?.priority ?? 'medium')
+  const [cognitiveLoad, setCognitiveLoad] = useState<Task['cognitive_load']>(editTask?.cognitive_load ?? 'medium')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -28,15 +33,27 @@ export default function AddTaskModal({ onClose, onAdd }: AddTaskModalProps) {
     setLoading(true)
     setError('')
     try {
-      const task = await api.createTask({
-        name: name.trim(),
-        due_date: dueDate,
-        estimated_time: estimatedTime,
-        priority,
-      })
-      onAdd(task)
+      if (isEdit && editTask) {
+        const task = await api.updateTask(editTask.id, {
+          name: name.trim(),
+          due_date: dueDate,
+          estimated_time: estimatedTime,
+          priority,
+          cognitive_load: cognitiveLoad,
+        })
+        onEdit?.(task)
+      } else {
+        const task = await api.createTask({
+          name: name.trim(),
+          due_date: dueDate,
+          estimated_time: estimatedTime,
+          priority,
+          cognitive_load: cognitiveLoad,
+        })
+        onAdd(task)
+      }
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to create task')
+      setError(err instanceof Error ? err.message : `Failed to ${isEdit ? 'update' : 'create'} task`)
     } finally {
       setLoading(false)
     }
@@ -48,7 +65,9 @@ export default function AddTaskModal({ onClose, onAdd }: AddTaskModalProps) {
       onClick={(e) => { if (e.target === e.currentTarget) onClose() }}
     >
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 p-6">
-        <h2 className="text-xl font-bold text-gray-800 mb-5">Add New Task</h2>
+        <h2 className="text-xl font-bold text-gray-800 mb-5">
+          {isEdit ? 'Edit Task' : 'Add New Task'}
+        </h2>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Task Name */}
@@ -113,6 +132,31 @@ export default function AddTaskModal({ onClose, onAdd }: AddTaskModalProps) {
             </div>
           </div>
 
+          {/* Cognitive Load */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Cognitive Load</label>
+            <div className="flex gap-2">
+              {([['deep', 'Deep'], ['medium', 'Medium'], ['light', 'Light']] as [Task['cognitive_load'], string][]).map(([val, label]) => (
+                <button
+                  key={val}
+                  type="button"
+                  onClick={() => setCognitiveLoad(val)}
+                  className={`flex-1 py-2 rounded-full text-sm font-semibold border-2 transition-colors ${
+                    cognitiveLoad === val
+                      ? val === 'deep'
+                        ? 'bg-[#7C6EF0] border-[#7C6EF0] text-white'
+                        : val === 'medium'
+                        ? 'bg-blue-400 border-blue-400 text-white'
+                        : 'bg-teal-400 border-teal-400 text-white'
+                      : 'border-gray-200 text-gray-600 hover:border-gray-300'
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+
           {error && <p className="text-sm text-red-500">{error}</p>}
 
           {/* Actions */}
@@ -129,7 +173,7 @@ export default function AddTaskModal({ onClose, onAdd }: AddTaskModalProps) {
               disabled={loading}
               className="flex-1 py-2.5 rounded-xl bg-[#7C6EF0] text-white text-sm font-semibold hover:bg-[#6358D4] disabled:opacity-50 transition-colors"
             >
-              {loading ? 'Adding...' : 'Add Task'}
+              {loading ? (isEdit ? 'Saving...' : 'Adding...') : (isEdit ? 'Save Changes' : 'Add Task')}
             </button>
           </div>
         </form>

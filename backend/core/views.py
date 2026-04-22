@@ -1,13 +1,14 @@
 import os
-from datetime import date, timedelta
+from datetime import date, timedelta, datetime, time
 from django.conf import settings
+from django.utils import timezone
 from rest_framework import status
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 import anthropic
 
-from .models import Task, ChatMessage
-from .serializers import TaskSerializer, ChatMessageSerializer
+from .models import Task, ChatMessage, UserSettings
+from .serializers import TaskSerializer, ChatMessageSerializer, UserSettingsSerializer
 
 SYSTEM_PROMPT = (
     "You are NudgeAI, a friendly and empathetic AI accountability partner. "
@@ -151,32 +152,100 @@ def initial_nudge(request):
 @api_view(['GET'])
 def stats(request):
     today = date.today()
-    week_start = today - timedelta(days=today.weekday())
+    # Monday of the current week at 00:00 local time, converted to aware datetime
+    week_start_date = today - timedelta(days=today.weekday())
+    week_start = timezone.make_aware(datetime.combine(week_start_date, time.min))
 
-    completed_this_week = Task.objects.filter(completed=True).count()
-    total_tasks = Task.objects.count()
-    checkins_this_week = ChatMessage.objects.filter(
-        role='user',
-        timestamp__date__gte=week_start
+    # Tasks completed this week: completed=True AND completed_at >= Monday 00:00
+    completed_this_week = Task.objects.filter(
+        completed=True,
+        completed_at__gte=week_start,
     ).count()
 
-    # Simple streak: count consecutive days with at least one completed task check-in
+    completed_all_time = Task.objects.filter(completed=True).count()
+
+    # Tasks created this week (tasks the user has been working with since Monday)
+    total_this_week = Task.objects.filter(created_at__gte=week_start).count()
+
+    checkins_this_week = ChatMessage.objects.filter(
+        role='user',
+        timestamp__gte=week_start,
+    ).count()
+
+    # Streak: count consecutive days ending today that have at least one completed task
     streak = 0
     check_day = today
     for _ in range(30):
-        had_activity = ChatMessage.objects.filter(
-            role='user',
-            timestamp__date=check_day
+        had_completion = Task.objects.filter(
+            completed=True,
+            completed_at__date=check_day,
         ).exists()
-        if had_activity:
+        if had_completion:
             streak += 1
             check_day -= timedelta(days=1)
         else:
             break
 
     return Response({
-        'completed': completed_this_week,
-        'total': total_tasks,
-        'checkins': checkins_this_week,
+        'completed_this_week': completed_this_week,
+        'completed_all_time': completed_all_time,
+        'total_this_week': total_this_week,
+        'checkins_this_week': checkins_this_week,
         'streak': streak,
     })
+
+
+@api_view(['GET'])
+def focus_recommendation(request):
+    user_settings = UserSettings.get_or_create_settings()
+    window = user_settings.focus_window
+
+    current_hour = datetime.now().hour
+    window_ranges = {
+        'morning':   (6, 12),
+        'afternoon': (12, 18),
+        'evening':   (18, 24),
+    }
+
+    in_window = False
+    if window != 'none' and window in window_ranges:
+        start, end = window_ranges[window]
+        in_window = start <= current_hour < end
+
+    if not in_window:
+        return Response({'in_focus_window': False, 'window': window, 'task': None})
+
+    load_order = {'deep': 0, 'medium': 1, 'light': 2}
+    priority_order = {'urgent': 0, 'medium': 1, 'low': 2}
+
+    incomplete = list(Task.objects.filter(completed=False))
+    if not incomplete:
+        return Response({'in_focus_window': True, 'window': window, 'task': None})
+
+    def sort_key(t):
+        due = t.due_date if t.due_date else date.max
+        return (
+            load_order.get(t.cognitive_load, 1),
+            priority_order.get(t.priority, 1),
+            due,
+        )
+
+    best = sorted(incomplete, key=sort_key)[0]
+    serializer = TaskSerializer(best)
+    return Response({'in_focus_window': True, 'window': window, 'task': serializer.data})
+
+
+@api_view(['GET', 'PATCH'])
+def settings_view(request):
+    user_settings = UserSettings.get_or_create_settings()
+
+    if request.method == 'GET':
+        serializer = UserSettingsSerializer(user_settings)
+        return Response(serializer.data)
+
+    elif request.method == 'PATCH':
+        serializer = UserSettingsSerializer(user_settings, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
